@@ -65,7 +65,13 @@ class BadrikGame {
     init() {
         // Предзагрузка текстур
         for (const [key, path] of Object.entries(this.textureMap)) {
-            const tex = this.textureLoader.load(path);
+            console.log(`Loading texture: ${key} from ${path}`);
+            const tex = this.textureLoader.load(
+                path,
+                () => console.log(`Texture ${key} loaded successfully`),
+                undefined,
+                (error) => console.error(`Error loading texture ${key}:`, error)
+            );
             tex.flipY = false;
             tex.colorSpace = THREE.SRGBColorSpace;
             this.textures[key] = tex;
@@ -124,24 +130,39 @@ class BadrikGame {
 
     
     loadMenuDog() {
-        this.loader.load('bulldog.glb', (gltf) => {
-            this.menuDog = gltf.scene;
-            this.menuDog.scale.set(1, 1, 1);
-            this.menuDog.position.set(0, 0, 0);
-            this.menuDog.rotation.y = 0; // Лицом к камере (морда вперёд по Z+)
-            
-            this.applyTextureToModel(this.menuDog, 'white');
-            this.menuScene.add(this.menuDog);
-            
-            // Анимация idle
-            if (gltf.animations.length > 0) {
-                this.menuMixer = new THREE.AnimationMixer(this.menuDog);
-                const idleClip = gltf.animations.find(c => c.name.includes('idle_A_0'));
-                if (idleClip) {
-                    this.menuMixer.clipAction(idleClip).play();
+        console.log('Loading bulldog model...');
+        this.loader.load(
+            'bulldog.glb',
+            (gltf) => {
+                console.log('Model loaded successfully!', gltf);
+                this.menuDog = gltf.scene;
+                this.menuDog.scale.set(1, 1, 1);
+                this.menuDog.position.set(0, 0, 0);
+                this.menuDog.rotation.y = 0;
+                
+                this.applyTextureToModel(this.menuDog, 'white');
+                this.menuScene.add(this.menuDog);
+                
+                // Анимация idle
+                if (gltf.animations.length > 0) {
+                    this.menuMixer = new THREE.AnimationMixer(this.menuDog);
+                    const idleClip = gltf.animations.find(c => c.name.includes('idle_A_0'));
+                    if (idleClip) {
+                        this.menuMixer.clipAction(idleClip).play();
+                    }
                 }
+                
+                // Включаем кнопку старта после загрузки
+                document.getElementById('startGame').disabled = false;
+            },
+            (progress) => {
+                console.log('Loading progress:', (progress.loaded / progress.total * 100).toFixed(2) + '%');
+            },
+            (error) => {
+                console.error('Error loading model:', error);
+                alert('Ошибка загрузки модели: ' + error.message);
             }
-        });
+        );
     }
     
     applyTextureToModel(model, skinName) {
